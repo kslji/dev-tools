@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import jwt, base64, uuid_gen, sql_formatter, regex, yaml_validator
 from app.middleware.gateway_auth import GatewayAuthMiddleware
+from app.utils.log_helper import CentralLoggerMiddleware
 
 app = FastAPI(
     title="DevUtils Microservice",
@@ -10,6 +11,7 @@ app = FastAPI(
 )
 
 app.add_middleware(GatewayAuthMiddleware)
+app.add_middleware(CentralLoggerMiddleware, service_name="dev-service")
 
 # CORS for frontend (adjust origins as needed)
 app.add_middleware(
