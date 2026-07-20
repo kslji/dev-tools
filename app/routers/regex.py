@@ -1,5 +1,5 @@
 import re
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from app.schemas.regex import RegexTestRequest, RegexTestResponse, RegexMatchDetail
 
 router = APIRouter()
@@ -17,11 +17,9 @@ async def test_regex(request: RegexTestRequest):
     try:
         compiled_regex = re.compile(request.pattern, flags)
     except re.error as e:
-        return RegexTestResponse(
-            valid_pattern=False,
-            pattern_error=str(e),
-            matches=[],
-            match_count=0
+        raise HTTPException(
+            status_code=400,
+            detail={"error": f"Invalid Regex pattern: {str(e)}", "code": "invalid_regex"}
         )
 
     matches = []

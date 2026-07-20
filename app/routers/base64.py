@@ -1,5 +1,5 @@
 import base64
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from app.schemas.base64 import Base64Request, Base64Response
 
 router = APIRouter()
@@ -17,7 +17,10 @@ async def base64_encode(request: Base64Request):
         result_str = encoded_bytes.decode("ascii")
         return Base64Response(result=result_str, success=True)
     except Exception as e:
-        return Base64Response(result="", success=False, error=str(e))
+        raise HTTPException(
+            status_code=400,
+            detail={"error": f"Base64 encoding failed: {str(e)}", "code": "base64_encode_error"}
+        )
 
 @router.post("/base64/decode", response_model=Base64Response)
 async def base64_decode(request: Base64Request):
@@ -36,4 +39,7 @@ async def base64_decode(request: Base64Request):
         result_str = decoded_bytes.decode(request.encoding)
         return Base64Response(result=result_str, success=True)
     except Exception as e:
-        return Base64Response(result="", success=False, error=str(e))
+        raise HTTPException(
+            status_code=400,
+            detail={"error": f"Base64 decoding failed: {str(e)}", "code": "base64_decode_error"}
+        )

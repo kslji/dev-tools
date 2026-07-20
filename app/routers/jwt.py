@@ -18,10 +18,9 @@ async def decode_jwt(request: JWTDecodeRequest):
         signature_info["algorithm"] = header.get("alg")
         signature_info["type"] = header.get("typ")
     except Exception as e:
-        return JWTDecodeResponse(
-            valid=False,
-            errors=[f"Invalid JWT format or header: {str(e)}"],
-            signature_status="Invalid"
+        raise HTTPException(
+            status_code=400,
+            detail={"error": f"Invalid JWT format or header: {str(e)}", "code": "invalid_jwt"}
         )
 
     # Decode payload
@@ -37,22 +36,16 @@ async def decode_jwt(request: JWTDecodeRequest):
                 signature_info=signature_info
             )
         except Exception as e:
-            return JWTDecodeResponse(
-                valid=False,
-                header=header,
-                errors=[f"Failed to decode payload: {str(e)}"],
-                signature_status="Unverified",
-                signature_info=signature_info
+            raise HTTPException(
+                status_code=400,
+                detail={"error": f"Failed to decode payload: {str(e)}", "code": "invalid_jwt"}
             )
     else:
         # Perform signature verification
         if not request.key:
-            return JWTDecodeResponse(
-                valid=False,
-                header=header,
-                errors=["A verification key is required when verify=True"],
-                signature_status="Unverified",
-                signature_info=signature_info
+            raise HTTPException(
+                status_code=400,
+                detail={"error": "A verification key is required when verify=True", "code": "key_required"}
             )
         
         algorithms = [request.algorithm] if request.algorithm else [header.get("alg", "HS256")]
@@ -76,19 +69,10 @@ async def decode_jwt(request: JWTDecodeRequest):
             errors.append(f"Invalid token: {str(e)}")
             signature_status = "Failed (Invalid)"
         
-        # If we failed verification, try to extract payload anyway for inspection
-        try:
-            payload = jwt.decode(request.token, options={"verify_signature": False})
-        except Exception:
-            pass
-
-        return JWTDecodeResponse(
-            valid=False,
-            header=header,
-            payload=payload,
-            errors=errors,
-            signature_status=signature_status,
-            signature_info=signature_info
+        # If we failed verification, raise HTTPException
+        raise HTTPException(
+            status_code=400,
+            detail={"error": errors[0] if errors else "Signature verification failed", "code": "invalid_jwt"}
         )
 
 @router.post("/jwt/encode", response_model=JWTEncodeResponse)
@@ -102,5 +86,7 @@ async def encode_jwt(request: JWTEncodeRequest):
         )
         return JWTEncodeResponse(token=token, success=True)
     except Exception as e:
-        return JWTEncodeResponse(token="", success=False, error=str(e))
-
+        raise HTTPException(
+            status_code=400,
+            detail={"error": f"Failed to encode JWT: {str(e)}", "code": "jwt_encode_error"}
+        )

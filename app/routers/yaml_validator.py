@@ -1,5 +1,5 @@
 import yaml
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from app.schemas.yaml import YAMLRequest, YAMLValidateResponse, YAMLFormatResponse
 
 router = APIRouter()
@@ -12,14 +12,20 @@ async def validate_yaml(request: YAMLRequest):
     except yaml.MarkedYAMLError as e:
         line = e.problem_mark.line + 1 if e.problem_mark else None
         column = e.problem_mark.column + 1 if e.problem_mark else None
-        return YAMLValidateResponse(
-            valid=False,
-            error=str(e),
-            error_line=line,
-            error_column=column
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": f"Invalid YAML: {str(e)}",
+                "code": "invalid_yaml",
+                "line": line,
+                "column": column
+            }
         )
     except Exception as e:
-        return YAMLValidateResponse(valid=False, error=str(e))
+        raise HTTPException(
+            status_code=400,
+            detail={"error": f"Invalid YAML: {str(e)}", "code": "invalid_yaml"}
+        )
 
 @router.post("/yaml/format", response_model=YAMLFormatResponse)
 async def format_yaml(request: YAMLRequest):
@@ -33,4 +39,7 @@ async def format_yaml(request: YAMLRequest):
         )
         return YAMLFormatResponse(formatted_yaml=formatted, success=True)
     except Exception as e:
-        return YAMLFormatResponse(formatted_yaml="", success=False, error=str(e))
+        raise HTTPException(
+            status_code=400,
+            detail={"error": f"Invalid YAML for formatting: {str(e)}", "code": "invalid_yaml"}
+        )

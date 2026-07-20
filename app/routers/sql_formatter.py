@@ -1,5 +1,5 @@
 import sqlparse
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from app.schemas.sql import SQLFormatRequest, SQLFormatResponse
 
 router = APIRouter()
@@ -15,4 +15,7 @@ async def format_sql(request: SQLFormatRequest):
         )
         return SQLFormatResponse(formatted_sql=formatted, success=True)
     except Exception as e:
-        return SQLFormatResponse(formatted_sql="", success=False, error=str(e))
+        raise HTTPException(
+            status_code=400,
+            detail={"error": f"Invalid SQL: {str(e)}", "code": "invalid_sql"}
+        )
